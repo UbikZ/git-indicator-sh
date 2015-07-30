@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Check git install
-[[ ! $(which git | grep "not found" | wc -l) -eq 0 ]] && echo "Git is not installed." && exit
+[[ ! $(hash git | wc -l) -eq 0 ]] && echo "Git is not installed." && exit
 
 # Init
 CONFIG=()
