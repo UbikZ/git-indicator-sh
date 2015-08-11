@@ -12,6 +12,7 @@ function usage {
     echo 'Usage : git-indicator.sh -c <config_file> -i <repository> --check --help
           -c file           set a configuration file with preset repositories
           -i repository     ask sync information about one repository
+          --fetch           force fetch each time
           --help            help
           '
     exit 0
@@ -27,6 +28,22 @@ function parseConfiguration {
         done
     fi
     echo "${CONFIG[@]}"
+}
+
+function fetch {
+    REPOSITORY=$1
+    CACHE_FILE="~/.gitsh.cache"
+    LIFETIME=300
+    
+    [ -f "$CACHE_FILE" ] && DURATION=$(cat $CACHE_FILE) || DURATION=0
+    
+    diffTime=0 #$(($(date +%s) - $DURATION))
+    result=1
+    if [[ $diffTime -ge $LITEFIME ]]; then
+        echo "test"
+        #(git fetch -q $REPOSITORY >/dev/null && echo $(date +%s) > $CACHE_FILE) || result=-1
+    fi
+    echo $result
 }
 
 function gitDiffCountCommits {
