@@ -1,2 +1,1 @@
 # git-indicator-sh
-
