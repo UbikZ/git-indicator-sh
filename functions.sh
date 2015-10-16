@@ -34,9 +34,9 @@ function fetch {
     REPOSITORY=$1
     CACHE_FILE="~/.gitsh.cache"
     LIFETIME=300
-    
+
     [ -f "$CACHE_FILE" ] && DURATION=$(cat $CACHE_FILE) || DURATION=0
-    
+
     diffTime=0 #$(($(date +%s) - $DURATION))
     result=1
     if [[ $diffTime -ge $LITEFIME ]]; then
@@ -55,7 +55,7 @@ function gitDiffCountCommits {
     DEST_BRANCH="master"
     [ "$3" == "" ] && DEST_BRANCH="$3"
     cd "$1" && \
-    (git fetch >/dev/null || echo -1) && (git rev-list $2..origin/$3 --count 2>/dev/null || echo -1) && cd "$BASE"
+    (git fetch -q || echo -1) && (git rev-list $2..origin/$3 --count 2>/dev/null || echo -1) && cd "$BASE"
 }
 
 function gitCountCommits {
@@ -85,4 +85,3 @@ function showRepositoriesSync {
         done
     fi
 }
-
