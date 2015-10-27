@@ -32,37 +32,40 @@ function parseConfiguration {
 
 function fetch {
     REPOSITORY=$1
-    CACHE_FILE="~/.gitsh.cache"
-    LIFETIME=300
+    HASH=$(md5sum "$1.git/config" | awk -F' ' '{print $1}')
+    CACHE_FOLDER="$HOME/.gitsh"
+    CACHE_FILE="$CACHE_FOLDER/$HASH"
+    LIFETIME=0
 
-    [ -f "$CACHE_FILE" ] && DURATION=$(cat $CACHE_FILE) || DURATION=0
+    [ ! -d "$CACHE_FOLDER" ] && mkdir -p "$CACHE_FOLDER"
+    [ -f "$CACHE_FILE" ] && DURATION=$(cat "$CACHE_FILE") || DURATION=0
 
-    diffTime=0 #$(($(date +%s) - $DURATION))
+    diffTime=$(($(date +%s) - $DURATION))
     result=1
-    if [[ $diffTime -ge $LITEFIME ]]; then
-        echo "test"
-        #(git fetch -q $REPOSITORY >/dev/null && echo $(date +%s) > $CACHE_FILE) || result=-1
+
+    if [[ $diffTime -ge LIFETIME ]]; then
+        (git fetch -q "$REPOSITORY" && echo $(date +%s) > "$CACHE_FILE") || result=-1
     fi
+
     echo $result
 }
 
 function gitDiffCountCommits {
     REPOSITORY="$1"
-    SRC_BRANCH="master"
 
     checkRepository "$REPOSITORY"
-    [ "$2" == "" ] && SRC_BRANCH="$2"
-    DEST_BRANCH="master"
-    [ "$3" == "" ] && DEST_BRANCH="$3"
-    cd "$1" && \
-    (git fetch -q || echo -1) && (git rev-list $2..origin/$3 --count 2>/dev/null || echo -1) && cd "$BASE"
+    [ "$2" == "" ] && SRC_BRANCH="master" || SRC_BRANCH="$2"
+    [ "$3" == "" ] && DEST_BRANCH="master" || DEST_BRANCH="$3"
+    cd "$1" && (git rev-list "$SRC_BRANCH"..origin/"$DEST_BRANCH" --count 2>/dev/null || echo -1) && cd "$BASE"
 }
 
 function gitCountCommits {
     REPOSITORY="$1"
 
     checkRepository "$REPOSITORY"
-    cd "$REPOSITORY" && (git rev-list HEAD --count 2>/dev/null || echo -1) && cd "$BASE"
+    [ "$2" == "" ] && SRC_BRANCH="master" || SRC_BRANCH="$2"
+
+    cd "$REPOSITORY" && (git rev-list "$SRC_BRANCH" --count 2>/dev/null || echo -1) && cd "$BASE"
 }
 
 function checkRepository {
@@ -74,14 +77,18 @@ function showRepositoriesSync {
         echo "No configuration found."
     else
         for repository in $1; do
-            countCommits=$(gitCountCommits "$repository")
-            countDiffCommits=$(gitDiffCountCommits "$repository" "master" "master")
-            op=$(($countCommits-$countDiffCommits))
-            [ $countCommits -eq -1 ] && percent=" - " || percent=$((100*$op/$countCommits))
-            [ "$percent" == "100" ] && color="$green" || color="$yellow"
-            [ "$percent" == " - " ] && color="$red"
+            if [[ $(fetch "$repository") -eq 1 ]]; then
+                countCommits=$(gitCountCommits "$repository")
+                countDiffCommits=$(gitDiffCountCommits "$repository" "master" "master")
+                op=$(($countCommits-$countDiffCommits))
+                [ $countCommits -eq -1 ] && percent=" - " || percent=$((100*$op/$countCommits))
+                [ "$percent" == "100" ] && color="$green" || color="$yellow"
+                [ "$percent" == " - " ] && color="$red"
 
-            echo -e "$yellow > $white $repository ($color $percent%$white )$default"
+                echo -e "$yellow > $white $repository ($color $percent%$white )$default"
+            else
+                echo -e "$yellow > $red $repository (fetch error)$default"
+            fi
         done
     fi
 }
